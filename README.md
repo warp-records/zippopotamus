@@ -2,4 +2,4 @@
 # Zippopotamus
 A zip compression program written in Rust
 
-![Zippopotamus](zippopotamus.png)
+![Zippopotamus](zippopotamus.png){ width=50% }
