@@ -1,13 +1,16 @@
 
-use std::fs;
+use std::{env::args, fs, io::{BufRead, BufReader}};
 
 use webbrowser;
 
 fn main() {
-    let _ = webbrowser::open("https://youtu.be/q86g1aop6a8");
+    //let _ = webbrowser::open("https://youtu.be/q86g1aop6a8");
     println!("Zippopotamus: version {}", env!("CARGO_PKG_VERSION"));
 
-    if let Ok(art) = fs::read_to_string("zipper.txt") {
-        println!("{art}");
-    }
+    //if let Ok(art) = fs::read_to_string("zipper.txt") {
+    //    println!("{art}");
+    //}
+
+    //let filename = args().nth(1).expect("Expected file path as arugment");
+    //let mut reader = BufReader::new(fs::File::open(filename).expect("Unable to open file {filename}"));
 }
