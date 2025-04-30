@@ -12,7 +12,7 @@ pub struct HuffmanTree {
     dict: HashMap<char, u16>,
 }
 
-#[derive(PartialEq, Eq, Clone, Copy, Default, Hash, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Default, Hash)]
 struct Node {
     symbol: Option<char>,
     weight: usize,
