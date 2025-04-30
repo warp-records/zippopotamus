@@ -1,3 +1,3 @@
 
-mod zip;
-mod huffman;
+pub mod zip;
+pub mod huffman;

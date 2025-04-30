@@ -1,16 +1,18 @@
 
+
 //use home baked implementation in the future
-use std::collections::HashMap;
-use caffeine::q::PriorityQ;
+use std::collections::{BinaryHeap, HashMap};
+use std::cmp::Reverse;
+//use caffeine::q::PriorityQ;
 
 pub struct HuffmanTree {
     //represent as an implicit data structure
     tree: Vec<Node>,
     //<huff code, char>
-    dict: HashMap<u16, char>,
+    dict: HashMap<char, u16>,
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(PartialEq, Eq, Clone, Copy, Default, Hash, Debug)]
 struct Node {
     symbol: Option<char>,
     weight: usize,
@@ -22,11 +24,23 @@ struct Node {
 
 impl HuffmanTree {
 
+    pub fn from_str(s: &str) -> Self {
+
+        let mut freq_map = HashMap::new();
+        for c in s.chars() {
+            *freq_map.entry(c).or_insert(0) += 1;
+        }
+        let mut elems: Vec<(char, usize)> = freq_map.into_iter().collect();
+        //necessary to sort for stable tree generation
+        elems.sort_by(|a, b| a.0.cmp(&b.0));
+        Self::new(elems)
+    }
+
     //Vec<(symbol, frequency)>
     pub fn new(elems: Vec<(char, usize)>) -> Self {
         let mut nodes = Vec::with_capacity(elems.len());
         //insert into priority queue based on frequency
-        let mut pq = PriorityQ::new();
+        let mut pq = BinaryHeap::new();
         for (i, elem) in elems.iter().enumerate() {
 
             let node = Node {
@@ -38,7 +52,7 @@ impl HuffmanTree {
             };
 
             nodes.push(node);
-            pq.push(node, node.weight);
+            pq.push(Reverse(node));
         }
 
         while pq.len() > 1 {
@@ -56,13 +70,13 @@ impl HuffmanTree {
             nodes[second.idx].parent = Some(parent.idx);
 
             nodes.push(parent);
-            pq.push(parent, parent.weight);
+            pq.push(Reverse(parent));
         }
 
         Self { tree: nodes, dict: HashMap::new() }
     }
 
-    pub fn gen_dict(&mut self) -> HashMap<u16, char> {
+    pub fn gen_dict(&mut self) -> HashMap<char, u16> {
         self.recurse(self.tree.len()-1, &mut Vec::new());
         std::mem::take(&mut self.dict)
     }
@@ -82,7 +96,7 @@ impl HuffmanTree {
             }
 
             //embed into lookup table
-            self.dict.insert(code, self.tree[idx].symbol.expect("Expected symbol in this node"));
+            self.dict.insert(self.tree[idx].symbol.expect("Expected symbol in this node"), code);
         }
 
         //recurse tree pre order
@@ -98,14 +112,22 @@ impl HuffmanTree {
     }
 }
 
+//is this right?
 impl PartialOrd for Node {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        //must have a way to represent a consistent order
+        //in the case of two characters having the same weight
         self.weight.partial_cmp(&other.weight)
+            .and_then(|ord| match ord {
+                std::cmp::Ordering::Equal => self.symbol.partial_cmp(&other.symbol),
+                _ => Some(ord),
+            })
     }
 }
 
-impl PartialEq for Node {
-    fn eq(&self, other: &Self) -> bool {
-        self.weight == other.weight
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.weight.cmp(&other.weight)
+            .then(self.symbol.cmp(&other.symbol))
     }
 }

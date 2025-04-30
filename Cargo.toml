@@ -3,6 +3,10 @@ name = "zippopotamus"
 version = "0.0.1"
 edition = "2021"
 
+[profile.release]
+opt-level = 3
+
 [dependencies]
 caffeine = "0.2.0"
+priority-queue = "2.3.1"
 webbrowser = "1.0.4"
