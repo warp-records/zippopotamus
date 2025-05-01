@@ -54,7 +54,6 @@ pub fn decompress_file(source: &str, dest: &str) {
     let mut zpp: Zpp = bincode::deserialize(&serialized[..]).expect("Failed to deserialize");
     let mut bit_stream: BitVec<u8, Lsb0> = BitVec::from_vec(zpp.binary_data);
 
-    println!("{} {}", zpp.binary_len, bit_stream.len());
     let mut output = String::new();
 
     //converts the symbol to code map into a
@@ -64,9 +63,9 @@ pub fn decompress_file(source: &str, dest: &str) {
 
     let mut next_code: u16 = 0;
     let mut code_len: u8 = 0;
-    for _ in 0..zpp.binary_len {
+    for i in 0..zpp.binary_len {
         next_code <<= 1;
-        next_code |= bit_stream.remove(0) as u16;
+        next_code |= bit_stream[i] as u16;
         code_len += 1;
 
         if let Some(symbol) = inverted_code_dict.get(&(next_code, code_len)) {
