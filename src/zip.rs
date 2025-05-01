@@ -27,22 +27,22 @@ pub fn compress_file(source: &str, dest: &str) {
     let mut huff_table = huff_coder.gen_dict();
 
     let mut bit_stream = BitVec::<u8, Lsb0>::new();
+    let mut real_length = 0;
 
     for ch in text.chars() {
         let (next_code, code_len) = *huff_table.get(&ch).unwrap();
 
-        //push bits starting from the leftmost 1
-        //to the LSB
-        for i in 16-code_len..code_len {
-            bit_stream.push(next_code>>i == 1);
+        //push bits starting from the leftmost bit
+        //to the rightmost
+        for i in (0..code_len).rev() {
+            bit_stream.push((next_code>>i)&0b1 == 1);
+            real_length += 1;
         }
-
-        //fill up the last byte in the vec with 0s
-        zpp.binary_len = bit_stream.len();
     }
 
     zpp.huff_table = huff_table;
     zpp.binary_data = Vec::<u8>::from(bit_stream);
+    zpp.binary_len = real_length;
 
     let serialized = bincode::serialize(&zpp).expect("Failed to serialize Zpp");
     fs::write(dest, serialized).expect("Failed to write compressed file");
@@ -52,9 +52,11 @@ pub fn decompress_file(source: &str, dest: &str) {
 
     let serialized = fs::read(source).expect("Failed to read file");
     let mut zpp: Zpp = bincode::deserialize(&serialized[..]).expect("Failed to deserialize");
-    let mut bit_stream = std::mem::take(&mut zpp.binary_data);
+    let mut bit_stream: BitVec<u8, Lsb0> = BitVec::from_vec(zpp.binary_data);
 
+    println!("{} {}", zpp.binary_len, bit_stream.len());
     let mut output = String::new();
+
     //converts the symbol to code map into a
     //code to symbol map
     let inverted_code_dict: HashMap<(u16, u8), char> = zpp.huff_table.iter()
@@ -69,7 +71,7 @@ pub fn decompress_file(source: &str, dest: &str) {
 
         if let Some(symbol) = inverted_code_dict.get(&(next_code, code_len)) {
             output.push(*symbol);
-            next_code  = 0;
+            next_code = 0;
             code_len = 0;
         }
     }
