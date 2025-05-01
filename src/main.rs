@@ -8,10 +8,7 @@ fn main() {
     //let _ = webbrowser::open("https://youtu.be/q86g1aop6a8");
     println!("Zippopotamus: version {}", env!("CARGO_PKG_VERSION"));
 
-    compress_file("data.txt");
-    println!("Done :D");
-    println!("FUCK YEAH LETS FUCKING GOOOOO");
-    /*
+    //compress_file("data.txt");
     let test_str = fs::read_to_string("data.txt").unwrap();
     let mut huffman_tree = HuffmanTree::from_str(&test_str);
     let code_dict = huffman_tree.gen_dict();
@@ -19,9 +16,15 @@ fn main() {
     println!("Done!");
 
     println!("Huffman code dictionary: ");
-    for (ch, code) in code_dict.iter() {
-        println!("{}: {:b}", ch, code);
-    } */
+    let mut len_sorted = code_dict.iter()
+        .collect::<Vec<_>>();
+
+    //sort by code length
+    len_sorted.sort_by(|a, b| { a.1.1.cmp(&b.1.1).then(a.0.cmp(b.0)) });
+
+    for (ch, code) in len_sorted {
+        println!("{}: {:0width$b}", ch, code.0, width = code.1 as usize);
+    }
 
 
     //if let Ok(art) = fs::read_to_string("zipper.txt") {

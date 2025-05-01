@@ -8,8 +8,8 @@ use std::cmp::Reverse;
 pub struct HuffmanTree {
     //represent as an implicit data structure
     tree: Vec<Node>,
-    //<huff code, char>
-    dict: HashMap<char, u16>,
+    //<char, (huffman code, len)>
+    dict: HashMap<char, (u16, u8)>,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Default, Hash)]
@@ -76,7 +76,7 @@ impl HuffmanTree {
         Self { tree: nodes, dict: HashMap::new() }
     }
 
-    pub fn gen_dict(&mut self) -> HashMap<char, u16> {
+    pub fn gen_dict(&mut self) -> HashMap<char, (u16, u8)> {
         self.recurse(self.tree.len()-1, &mut Vec::new());
         std::mem::take(&mut self.dict)
     }
@@ -96,7 +96,8 @@ impl HuffmanTree {
             }
 
             //embed into lookup table
-            self.dict.insert(self.tree[idx].symbol.expect("Expected symbol in this node"), code);
+            self.dict.insert(self.tree[idx].symbol.expect("Expected symbol in this node"),
+                (code, bitstack.len() as u8));
         }
 
         //recurse tree pre order

@@ -8,8 +8,9 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Serialize)]
 struct Zpp {
-    huff_table: HashMap<char, u16>,
+    huff_table: HashMap<char, (u16, u8)>,
     binary_data: Vec<u8>,
+    remainder_bits: u8,
 }
 
 //just a test to compress a file using huffman coding
@@ -17,6 +18,7 @@ pub fn compress_file(filename: &str) {
     let mut zpp = Zpp {
         huff_table: HashMap::new(),
         binary_data: Vec::new(),
+        remainder_bits: 0,
     };
 
     let text = fs::read_to_string("data.txt").unwrap();
@@ -24,18 +26,21 @@ pub fn compress_file(filename: &str) {
 
     let mut huff_table = huff_coder.gen_dict();
 
-    let mut bit_stream = BitVec::<u8, Msb0>::new();
+    let mut bit_stream = BitVec::<u8, Lsb0>::new();
 
     for ch in text.chars() {
-        let next_code = *huff_table.get(&ch).unwrap();
+        let (next_code, code_len) = *huff_table.get(&ch).unwrap();
 
-        if next_code == 0 {
+        //push bits starting from the leftmost 1
+        //to the LSB
+        for i in 16-code_len..code_len {
+            bit_stream.push(next_code>>i == 1);
+        }
+
+        //fill up the last byte in the vec with 0s
+        zpp.remainder_bits = (bit_stream.len() % 8) as u8;
+        for _ in 0..zpp.remainder_bits {
             bit_stream.push(false);
-        } else {
-            let start_idx = 15 - next_code.trailing_zeros();
-            for i in (start_idx..0).rev() {
-                bit_stream.push(((next_code&(1 << i))>>i) != 0);
-            }
         }
     }
 
