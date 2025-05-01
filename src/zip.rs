@@ -6,22 +6,22 @@ use std::fs;
 use bincode::*;
 use serde::{Serialize, Deserialize};
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct Zpp {
     huff_table: HashMap<char, (u16, u8)>,
     binary_data: Vec<u8>,
-    remainder_bits: u8,
+    binary_len: usize,
 }
 
 //just a test to compress a file using huffman coding
-pub fn compress_file(filename: &str) {
+pub fn compress_file(source: &str, dest: &str) {
     let mut zpp = Zpp {
         huff_table: HashMap::new(),
         binary_data: Vec::new(),
-        remainder_bits: 0,
+        binary_len: 0,
     };
 
-    let text = fs::read_to_string("data.txt").unwrap();
+    let text = fs::read_to_string(source).unwrap();
     let mut huff_coder = HuffmanTree::from_str(&text);
 
     let mut huff_table = huff_coder.gen_dict();
@@ -38,18 +38,45 @@ pub fn compress_file(filename: &str) {
         }
 
         //fill up the last byte in the vec with 0s
-        zpp.remainder_bits = (bit_stream.len() % 8) as u8;
-        for _ in 0..zpp.remainder_bits {
-            bit_stream.push(false);
-        }
+        zpp.binary_len = bit_stream.len();
     }
 
     zpp.huff_table = huff_table;
     zpp.binary_data = Vec::<u8>::from(bit_stream);
 
     let serialized = bincode::serialize(&zpp).expect("Failed to serialize Zpp");
-    fs::write("data.zpp", serialized).expect("Failed to write compressed file");
+    fs::write(dest, serialized).expect("Failed to write compressed file");
 }
+
+pub fn decompress_file(source: &str, dest: &str) {
+
+    let serialized = fs::read(source).expect("Failed to read file");
+    let mut zpp: Zpp = bincode::deserialize(&serialized[..]).expect("Failed to deserialize");
+    let mut bit_stream = std::mem::take(&mut zpp.binary_data);
+
+    let mut output = String::new();
+    //converts the symbol to code map into a
+    //code to symbol map
+    let inverted_code_dict: HashMap<(u16, u8), char> = zpp.huff_table.iter()
+                                            .map(|(&k, &v)| { (v, k) }).collect();
+
+    let mut next_code: u16 = 0;
+    let mut code_len: u8 = 0;
+    for _ in 0..zpp.binary_len {
+        next_code <<= 1;
+        next_code |= bit_stream.remove(0) as u16;
+        code_len += 1;
+
+        if let Some(symbol) = inverted_code_dict.get(&(next_code, code_len)) {
+            output.push(*symbol);
+            next_code  = 0;
+            code_len = 0;
+        }
+    }
+
+    fs::write(dest, output);
+}
+
 
 /*
 use std::io::{Read, Write};
