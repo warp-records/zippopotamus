@@ -8,13 +8,13 @@ use std::cmp::Reverse;
 pub struct HuffmanTree {
     //represent as an implicit data structure
     tree: Vec<Node>,
-    //<char, (huffman code, len)>
-    dict: HashMap<char, (u16, u8)>,
+    //<u8, (huffman code, len)>
+    dict: HashMap<u8, (u16, u8)>,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Default, Hash)]
 struct Node {
-    symbol: Option<char>,
+    symbol: Option<u8>,
     weight: usize,
     //indices of children if internal node
     children: Option<(usize, usize)>,
@@ -24,20 +24,20 @@ struct Node {
 
 impl HuffmanTree {
 
-    pub fn from_str(s: &str) -> Self {
+    pub fn from_bytes(bytes: &[u8]) -> Self {
 
         let mut freq_map = HashMap::new();
-        for c in s.chars() {
-            *freq_map.entry(c).or_insert(0) += 1;
+        for byte in bytes {
+            *freq_map.entry(*byte).or_insert(0) += 1;
         }
-        let mut elems: Vec<(char, usize)> = freq_map.into_iter().collect();
+        let mut elems: Vec<(u8, usize)> = freq_map.into_iter().collect();
         //necessary to sort for stable tree generation
         elems.sort_by(|a, b| a.0.cmp(&b.0));
         Self::new(elems)
     }
 
     //Vec<(symbol, frequency)>
-    pub fn new(elems: Vec<(char, usize)>) -> Self {
+    pub fn new(elems: Vec<(u8, usize)>) -> Self {
         let mut nodes = Vec::with_capacity(elems.len());
         //insert into priority queue based on frequency
         let mut pq = BinaryHeap::new();
@@ -76,7 +76,7 @@ impl HuffmanTree {
         Self { tree: nodes, dict: HashMap::new() }
     }
 
-    pub fn gen_dict(&mut self) -> HashMap<char, (u16, u8)> {
+    pub fn gen_dict(&mut self) -> HashMap<u8, (u16, u8)> {
         self.recurse(self.tree.len()-1, &mut Vec::new());
         std::mem::take(&mut self.dict)
     }

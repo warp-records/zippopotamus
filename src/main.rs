@@ -10,6 +10,7 @@ fn main() {
 
     compress_file("test_data/data.txt", "test_data/compressed.zpp");
     decompress_file("test_data/compressed.zpp", "test_data/decompressed.txt");
+
     /*
     let test_str = fs::read_to_string("data.txt").unwrap();
     let mut huffman_tree = HuffmanTree::from_str(&test_str);

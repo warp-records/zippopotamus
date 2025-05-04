@@ -8,7 +8,7 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
 struct Zpp {
-    huff_table: HashMap<char, (u16, u8)>,
+    huff_table: HashMap<u8, (u16, u8)>,
     binary_data: Vec<u8>,
     binary_len: usize,
 }
@@ -22,15 +22,15 @@ pub fn compress_file(source: &str, dest: &str) {
     };
 
     let text = fs::read_to_string(source).unwrap();
-    let mut huff_coder = HuffmanTree::from_str(&text);
+    let mut huff_coder = HuffmanTree::from_bytes(&text.as_bytes());
 
     let mut huff_table = huff_coder.gen_dict();
 
     let mut bit_stream = BitVec::<u8, Lsb0>::new();
     let mut real_length = 0;
 
-    for ch in text.chars() {
-        let (next_code, code_len) = *huff_table.get(&ch).unwrap();
+    for byte in text.bytes() {
+        let (next_code, code_len) = *huff_table.get(&byte).unwrap();
 
         //push bits starting from the leftmost bit
         //to the rightmost
@@ -54,11 +54,11 @@ pub fn decompress_file(source: &str, dest: &str) {
     let mut zpp: Zpp = bincode::deserialize(&serialized[..]).expect("Failed to deserialize");
     let mut bit_stream: BitVec<u8, Lsb0> = BitVec::from_vec(zpp.binary_data);
 
-    let mut output = String::new();
+    let mut output = Vec::new();
 
     //converts the symbol to code map into a
     //code to symbol map
-    let inverted_code_dict: HashMap<(u16, u8), char> = zpp.huff_table.iter()
+    let inverted_code_dict: HashMap<(u16, u8), u8> = zpp.huff_table.iter()
                                             .map(|(&k, &v)| { (v, k) }).collect();
 
     let mut next_code: u16 = 0;
