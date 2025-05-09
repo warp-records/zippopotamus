@@ -8,7 +8,7 @@ fn main() {
     //let _ = webbrowser::open("https://youtu.be/q86g1aop6a8");
     println!("Zippopotamus: version {}", env!("CARGO_PKG_VERSION"));
 
-    compress_file("test_data/data.txt", "test_data/compressed.zpp");
+    compress_file("test_data/philosophers_stone.txt", "test_data/compressed.zpp");
     decompress_file("test_data/compressed.zpp", "test_data/decompressed.txt");
 
     /*

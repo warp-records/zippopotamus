@@ -10,8 +10,10 @@ Essential tasks:
 - [ ] LZ77 compression
 - [ ] Parse metadata
 - [ ] Store in standrad zip format
+- [ ] CLI
 - [ ] Multi threading
 
 Extra features:
 - [ ] Use SIMD
 - [ ] Implement LZMA algorithm
+- [ ] Native OS support
