@@ -3,15 +3,27 @@
 //use home baked implementation in the future
 use std::collections::{BinaryHeap, HashMap};
 use std::cmp::Reverse;
+use std::fmt::Error;
+use std::process::Output;
 //use caffeine::q::PriorityQ;
+use bitvec::prelude::*;
+use std::fs;
+use serde::{Serialize, Deserialize};
 
+///Store huffman codes using a Hashmap
+///Map represented using the symbol as the key
+///and a tuple containing the code, and the code length
+///HashMap<symbol, (huffman code, len)>
+pub type CodeDict = HashMap<u8, (u16, u8)>;
+
+///Create a huffman tree
 pub struct HuffmanTree {
     //represent as an implicit data structure
     tree: Vec<Node>,
     //index of the root element
     root_idx: usize,
-    //<u8, (huffman code, len)>
-    dict: HashMap<u8, (u16, u8)>,
+    //only used during private function call which uses recursion
+    dict: CodeDict,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Default, Hash)]
@@ -41,7 +53,7 @@ impl HuffmanTree {
         Self::new(elems)
     }
 
-    //Vec<(symbol, frequency)>
+    ///Returns Vec<(symbol, frequency)>
     pub fn new(elems: Vec<(u8, usize)>) -> Self {
         let mut nodes = Vec::with_capacity(elems.len());
         //insert into priority queue based on frequency
@@ -81,48 +93,24 @@ impl HuffmanTree {
         Self { root_idx: nodes.len()-1, tree: nodes, dict: HashMap::new() }
     }
 
-    pub fn gen_dict(&mut self) -> HashMap<u8, (u16, u8)> {
-        self.limit_length();
-        self.recurse(self.tree.len()-1, &mut Vec::new());
+    pub fn gen_dict(&mut self) -> CodeDict {
+        //self.limit_length();
+        self.recurse(self.root_idx, &mut Vec::new());
         std::mem::take(&mut self.dict)
     }
 
+    //doesn't work
     fn limit_length(&mut self) {
-        let mut depth = 1;
-        let mut node = self.tree.first().unwrap();
 
-        while let Some(children) = node.children {
-            node = &self.tree[children.1];
-            depth += 1;
-        }
+        //calculate the depth by repurposing the function
+        //which recursively generates codes
+        let mut bitstack = Vec::new();
+        self.recurse(self.root_idx, &mut bitstack);
+        let mut depth = self.dict.iter().max_by(|a, b| { a.1.1.cmp(&b.1.1).then(a.0.cmp(b.0)) }).unwrap().1.1;
+        //recurse alters the dictionary
+        self.dict.clear();
+        println!("depth: {depth}");
 
-        //Rotate the tree left until it's only depth 15
-        while depth > Self::MAX_LEN {
-            self.rot_left();
-            depth -= 1;
-        }
-    }
-
-    fn rot_left(&mut self) {
-        //Reassign the root node's parent and children
-        let mut new_left = self.tree[self.root_idx];
-        let (old_left_idx, new_root_idx) = new_left.children.unwrap();
-        new_left.parent = Some(new_root_idx);
-        let new_children = (old_left_idx, self.tree[new_root_idx].children.unwrap().0);
-        new_left.children = Some(new_children);
-        new_left.weight = self.tree[new_children.0].weight + self.tree[new_children.1].weight;
-
-        //Do the same for the right node
-        let mut new_root = self.tree[new_root_idx];
-        new_root.parent = None;
-        let new_children = (self.root_idx, new_root.children.unwrap().1);
-        new_root.weight = self.tree[new_children.0].weight + self.tree[new_children.1].weight;
-        new_root.children = Some(new_children);
-
-        //update tree with new nodes
-        self.tree[new_root_idx] = new_root;
-        self.tree[self.root_idx] = new_left;
-        self.root_idx = new_root_idx;
     }
 
     //recurse down huffman tree in pre order, maintaining
@@ -175,4 +163,73 @@ impl Ord for Node {
         self.weight.cmp(&other.weight)
             .then(self.symbol.cmp(&other.symbol))
     }
+}
+
+
+#[derive(Serialize, Deserialize)]
+struct Zpp {
+    huff_table: CodeDict,
+    binary_data: Vec<u8>,
+    binary_len: usize,
+}
+
+///Convert a slice of unencoded bytes into a Vec of encoded bytes
+///Returns (Vec of encoded data, length in bits)
+pub fn huff_encode(source: &[u8], dict: &CodeDict) -> Result<(Vec<u8>, usize), Error> {
+    let mut zpp = Zpp {
+        huff_table: HashMap::new(),
+        binary_data: Vec::new(),
+        binary_len: 0,
+    };
+
+    let mut bit_stream = BitVec::<u8, Lsb0>::new();
+    let mut real_length: usize = 0;
+
+    for byte in source {
+        if let Some(&(next_code, code_len)) = dict.get(&byte) {
+            //push bits starting from the leftmost bit
+            //to the rightmost
+            for i in (0..code_len).rev() {
+                bit_stream.push((next_code>>i)&0b1 == 1);
+                real_length += 1;
+            }
+
+        //error when symol not found in dict
+        } else { return Err(Error) }
+    }
+
+    Ok((Vec::<u8>::from(bit_stream), real_length))
+}
+
+///Takes a huffman encoded slice of bytes, a dictionary, and a length
+///Returns a decoded stream of bytes
+pub fn huff_decode(source: &[u8], dict: &CodeDict, bit_len: usize) -> Result<Vec<u8>, Error> {
+
+    let mut bit_stream: BitVec<u8, Lsb0> = BitVec::from_vec(source.to_vec());
+
+    let mut output = Vec::new();
+
+    //converts the symbol to code map into a
+    //code to symbol map
+    //benched with flamegraph and this doesn't take up much time
+    let inverted_code_dict: HashMap<(u16, u8), u8> = dict.iter()
+                                            .map(|(&k, &v)| { (v, k) }).collect();
+
+    let mut next_code: u16 = 0;
+    let mut code_len: u8 = 0;
+    for i in 0..bit_len {
+        next_code <<= 1;
+        next_code |= bit_stream[i] as u16;
+        code_len += 1;
+
+        if let Some(symbol) = inverted_code_dict.get(&(next_code, code_len)) {
+            output.push(*symbol);
+            next_code = 0;
+            code_len = 0;
+
+        //error when code not found in dict
+        } else { return Err(Error) }
+    }
+
+    Ok(output)
 }

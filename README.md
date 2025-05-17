@@ -4,6 +4,7 @@ A zip compression program written in Rust
 
 <img src="zippopotamus.png" width="50%">
 
+# Project goals:
 Essential tasks:
 - [X] Huffman coding
   - [ ] Enforce 15 code len limit
@@ -12,6 +13,7 @@ Essential tasks:
 - [ ] Store in standrad zip format
 - [ ] CLI
 - [ ] Multi threading
+- [ ] Tests
 
 Extra features:
 - [ ] Use SIMD
