@@ -2,7 +2,6 @@
 use zippopotamus::zip::*;
 use std::{env::args, fs, io::{BufRead, BufReader}};
 use zippopotamus::{huffman::*, zip::compress_file};
-use webbrowser;
 
 fn main() {
     //let _ = webbrowser::open("https://youtu.be/q86g1aop6a8");
@@ -11,14 +10,29 @@ fn main() {
     //compress_file("test_data/data.txt", "test_data/compressed.zpp");
     //decompress_file("test_data/compressed.zpp", "test_data/decompressed.txt");
 
-    let test_str = fs::read_to_string("test_data/philosophers_stone.txt").unwrap();
-    let mut huffman_tree = HuffmanTree::from_bytes(test_str.as_bytes());
-    let code_dict = huffman_tree.gen_dict();
+    //let selection = args().nth(1)
+    let filename = args().nth(1).unwrap_or("data.txt".to_string());
+
+    //let compressedname = if let Some(dot_pos) = filename.rfind('.') {
+    //     format!("{}.zpp", &filename[..dot_pos])
+    // } else {
+    //     format!("{}.zpp", filename)
+    //};
+    compress_file(&filename, "compressed.zpp").expect("Failed to compress file. Does the file exist?");
+    decompress_file("compressed.zpp", "decompressed.zpp").expect("Failed to decompress file");
 
     println!("Done!");
 
+    if let Ok(art) = fs::read_to_string("zipper.txt") {
+        println!("{art}");
+    }
+
+}
+
+
+pub fn print_codes(dict: CodeDict) {
     println!("Huffman code dictionary: ");
-    let mut len_sorted = code_dict.iter()
+    let mut len_sorted = dict.iter()
         .collect::<Vec<_>>();
 
     //sort by code length
@@ -28,11 +42,4 @@ fn main() {
         println!("{}: {:0width$b}", char::from_u32(*ch as u32).unwrap_or('?'), code.0, width = code.1 as usize);
     }
 
-
-    //if let Ok(art) = fs::read_to_string("zipper.txt") {
-    //    println!("{art}");
-    //}
-
-    //let filename = args().nth(1).expect("Expected file path as arugment");
-    //let mut reader = BufReader::new(fs::File::open(filename).expect("Unable to open file {filename}"));
 }

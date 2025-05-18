@@ -3,7 +3,10 @@ use bitvec::prelude::*;
 use crate::huffman::*;
 use std::collections::HashMap;
 use std::fs;
-use bincode::*;
+///Use std::fmt::Error for error type because it's
+///a convenient unit struct
+use std::fmt::Error;
+//use bincode::*;
 use serde::{Serialize, Deserialize};
 
 ///Custom file format used for testing before implementing the PKware spec
@@ -15,7 +18,8 @@ struct Zpp {
 }
 
 //just a test to compress a file using huffman coding
-pub fn compress_file(source: &str, dest: &str) {
+pub fn compress_file(source: &str, dest: &str) -> Result<(), Error> {
+
     let mut zpp = Zpp {
         huff_table: HashMap::new(),
         encoded: Vec::new(),
@@ -26,24 +30,28 @@ pub fn compress_file(source: &str, dest: &str) {
     let mut huff_coder = HuffmanTree::from_bytes(&text.as_bytes());
 
     let code_dict = huff_coder.gen_dict();
-    let (encoded, len) = huff_encode(text.as_bytes(), &code_dict).expect("Failed to encode data");
+    let (encoded, len) = huff_encode(text.as_bytes(), &code_dict)?;
 
     zpp.huff_table = code_dict;
     zpp.encoded = encoded;
     zpp.binary_len = len;
 
-    let serialized = bincode::serialize(&zpp).expect("Failed to serialize Zpp");
-    fs::write(dest, serialized).expect("Failed to write compressed file");
+    let serialized = bincode::serialize(&zpp).map_err(|_| Error)?;
+    fs::write(dest, serialized).map_err(|_| Error)?;
+
+    Ok(())
 }
 
-pub fn decompress_file(source: &str, dest: &str) {
+pub fn decompress_file(source: &str, dest: &str) -> Result<(), Error> {
 
-    let serialized = fs::read(source).expect("Failed to read file");
-    let mut zpp: Zpp = bincode::deserialize(&serialized[..]).expect("Failed to deserialize");
+    let serialized = fs::read(source).map_err(|_| Error)?;
+    let zpp: Zpp = bincode::deserialize(&serialized[..]).map_err(|_| Error)?;
 
-    let decoded = huff_decode(&zpp.encoded, &zpp.huff_table, zpp.binary_len).expect("Failed to decode data");
+    let decoded = huff_decode(&zpp.encoded, &zpp.huff_table, zpp.binary_len).map_err(|_| Error)?;
 
-    fs::write(dest, decoded).expect("Failed to write file");
+    fs::write(dest, decoded).map_err(|_| Error)?;
+
+    Ok(())
 }
 
 

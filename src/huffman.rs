@@ -3,6 +3,7 @@
 //use home baked implementation in the future
 use std::collections::{BinaryHeap, HashMap};
 use std::cmp::Reverse;
+//custom error types aren't really necessary
 use std::fmt::Error;
 use std::process::Output;
 //use caffeine::q::PriorityQ;
@@ -203,6 +204,8 @@ pub fn huff_encode(source: &[u8], dict: &CodeDict) -> Result<(Vec<u8>, usize), E
 
 ///Takes a huffman encoded slice of bytes, a dictionary, and a length
 ///Returns a decoded stream of bytes
+///Breaks when there's a symbol longer than 16 bits since our tree
+///can't handle that yet!
 pub fn huff_decode(source: &[u8], dict: &CodeDict, bit_len: usize) -> Result<Vec<u8>, Error> {
 
     let mut bit_stream: BitVec<u8, Lsb0> = BitVec::from_vec(source.to_vec());
