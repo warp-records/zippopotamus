@@ -29,29 +29,35 @@ pub fn lz77_encode(source: &[u8]) -> Vec<u8> {
         let mut best_match = Match::with_symbol(source[cursor]);
 
         while sb_iter.peek().is_some() {
+            let mut inner_sb_iter = sb_iter.clone().cycle();
             let mut match_len = 0;
 
             //iterate over the lookahead buffer, and find the longest match
             //starting from our current position in the search buffer
-            for lb_symbol in lookahead_buf.iter() {
-                let (sb_pos, sb_symbol) = sb_iter.next().unwrap_or((search_buf.len()-1, &0xff));
+            for (lb_pos, lb_symbol) in lookahead_buf.iter().enumerate() {
+                let (sb_pos, sb_symbol) = inner_sb_iter.next().unwrap();
 
-                //if symbols match increment match counter
+                //if symbols match and we're not on the last iteration increment match counter
                 if sb_symbol == lb_symbol {
                     match_len += 1;
-                } else {
+                }
+                //if symbols are mismatched or the loop is ending,
+                //check the match and restart counter
+                if sb_symbol != lb_symbol || lb_pos == lookahead_buf.len()-1 {
 
                     //check if our current match is the longest one, and
                     //update it as our best match if so
                     if match_len > best_match.len {
                         best_match.len = match_len;
                         best_match.offset = (sb_pos - cursor.saturating_sub(WINDOW_LEN) + 1) as u8;
-                        best_match.next_symbol = lookahead_buf[match_len as usize];
+                        best_match.next_symbol = lookahead_buf[min(match_len as usize, lookahead_buf.len()-1)];
                     }
 
                     match_len = 0;
                 }
             }
+
+            sb_iter.next();
         }
 
         //output best match as a (length:offset:next_symbol) tuple
@@ -61,6 +67,8 @@ pub fn lz77_encode(source: &[u8]) -> Vec<u8> {
 
         //advance by the length of the match we found
         cursor += best_match.len as usize + 1;
+
+        if cursor >= source.len() { break; }
         //expand search buffer until it reaches size WINDOW_LEN, then shift to right
         search_buf = &source[cursor.saturating_sub(WINDOW_LEN)..cursor];
         //vice versa
