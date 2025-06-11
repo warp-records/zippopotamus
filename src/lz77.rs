@@ -34,7 +34,7 @@ pub fn lz77_encode(source: &[u8]) -> Vec<u8> {
             //iterate over the lookahead buffer, and find the longest match
             //starting from our current position in the search buffer
             for lb_symbol in lookahead_buf.iter() {
-                let (sb_pos, sb_symbol) = sb_iter.next().unwrap_or((0xff, &0xff));
+                let (sb_pos, sb_symbol) = sb_iter.next().unwrap_or((search_buf.len()-1, &0xff));
 
                 //if symbols match increment match counter
                 if sb_symbol == lb_symbol {
