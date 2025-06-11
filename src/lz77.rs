@@ -23,20 +23,23 @@ pub fn lz77_encode(source: &[u8]) -> Vec<u8> {
 
     //starting index of lookahead buffer
     let mut cursor: usize = 0;
-    let mut lb_iter = lookahead_buf.iter().peekable();
+    let mut sb_iter = search_buf.iter().enumerate().peekable();
 
     while lookahead_buf.len() > 0 {
         let mut best_match = Match::with_symbol(source[cursor]);
 
-        while lb_iter.peek().is_some() {
+        while sb_iter.peek().is_some() {
             let mut match_len = 0;
 
-            //iterate over the search buffer, and find the longest match
-            //starting from our current position in the lookahead buffer
-            for (sb_pos, sb_symbol) in search_buf.iter().enumerate() {
+            //iterate over the lookahead buffer, and find the longest match
+            //starting from our current position in the search buffer
+            for lb_symbol in lookahead_buf.iter() {
+                let (sb_pos, sb_symbol) = sb_iter.next().unwrap_or((0xff, &0xff));
 
                 //if symbols match increment match counter
-                if sb_symbol == lb_iter.next().unwrap() { match_len += 1; } else {
+                if sb_symbol == lb_symbol {
+                    match_len += 1;
+                } else {
 
                     //check if our current match is the longest one, and
                     //update it as our best match if so
@@ -63,7 +66,7 @@ pub fn lz77_encode(source: &[u8]) -> Vec<u8> {
         //vice versa
         lookahead_buf = &source[cursor..min(WINDOW_LEN+cursor, source.len())];
         //update iterator to lookahead buffer
-        lb_iter = lookahead_buf.iter().peekable();
+        sb_iter = search_buf.iter().enumerate().peekable();
     }
 
     output
