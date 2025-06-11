@@ -45,8 +45,8 @@ pub fn lz77_encode(source: &[u8]) -> Vec<u8> {
                     //update it as our best match if so
                     if match_len > best_match.len {
                         best_match.len = match_len;
+                        best_match.offset = (sb_pos - cursor.saturating_sub(WINDOW_LEN) + 1) as u8;
                         best_match.next_symbol = lookahead_buf[match_len as usize];
-                        best_match.offset = (cursor - sb_pos + 1) as u8;
                     }
 
                     match_len = 0;
