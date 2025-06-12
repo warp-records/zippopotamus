@@ -68,4 +68,47 @@ mod tests {
         // - Fourth byte: (len=3, offset=3, next_symbol=4)
         assert_eq!(output, vec![0, 0, 1, 0, 0, 2, 0, 0, 3, 3, 3, 4]);
     }
+
+    #[test]
+    fn test_decode_empty_input() {
+        let input = vec![];
+        let output = lz77_decode(&input).unwrap();
+        assert_eq!(output, vec![]);
+    }
+
+    #[test]
+    fn test_decode_single_byte() {
+        let input = vec![0, 0, 42];
+        let output = lz77_decode(&input).unwrap();
+        assert_eq!(output, vec![42]);
+    }
+
+
+    #[test]
+    fn test_decode_repeated_pattern() {
+        let input = vec![0, 0, 1, 2, 1, 1];
+        let output = lz77_decode(&input).unwrap();
+        assert_eq!(output, vec![1, 1, 1, 1]);
+    }
+
+    #[test]
+    fn test_decode_no_matches() {
+        let input = vec![0, 0, 1, 0, 0, 2, 0, 0, 3, 0, 0, 4];
+        let output = lz77_decode(&input).unwrap();
+        assert_eq!(output, vec![1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_decode_partial_match() {
+        let input = vec![0, 0, 1, 0, 0, 2, 2, 2, 3];
+        let output = lz77_decode(&input).unwrap();
+        assert_eq!(output, vec![1, 2, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_decode_long_match() {
+        let input = vec![0, 0, 1, 0, 0, 2, 0, 0, 3, 3, 3, 4];
+        let output = lz77_decode(&input).unwrap();
+        assert_eq!(output, vec![1, 2, 3, 1, 2, 3, 4]);
+    }
 }

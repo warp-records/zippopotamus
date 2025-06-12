@@ -57,7 +57,6 @@ pub fn lz77_encode(source: &[u8]) -> Vec<u8> {
                         best_match.next_symbol = lookahead_buf[min(match_len as usize, lookahead_buf.len()-1)];
                     }
 
-                    match_len = 0;
                     break;
                 }
             }
@@ -78,47 +77,39 @@ pub fn lz77_encode(source: &[u8]) -> Vec<u8> {
         search_buf = &source[cursor.saturating_sub(WINDOW_LEN)..cursor];
         //vice versa
         lookahead_buf = &source[cursor..min(WINDOW_LEN+cursor, source.len())];
-        //update iterator to lookahead buffer
-        sb_iter = search_buf.iter().enumerate().peekable();
     }
 
     output
 }
 
-/*
 pub fn lz77_decode(source: &[u8]) -> Result<Vec<u8>, Error> {
     let mut output = Vec::new();
 
-    let mut cursor: usize = 0;
     let mut iter = source.iter();
 
     //extract length, offset and next symbol
     while let Some(&len) = iter.next() {
         let len = len as usize;
         let offset = *iter.next().ok_or(Error)? as usize;
-        let next_symbol = *iter.next().ok_or(Error)? as usize;
+        let next_symbol = *iter.next().ok_or(Error)?;
 
 
-        let start = cursor - offset;
-        let mut i = 0;
-        for _ in start..start+len {
-            output.push(source[i]);
+        let mut i = output.len() - offset;
+        for _ in 0..len {
+            output.push(output[i % output.len()]);
             i += 1;
-
-            //wraparound
-            if i == cursor { i = 0; }
         }
+
+        output.push(next_symbol);
     }
 
     Ok(output)
 }
- */
 
 
 impl Match {
-    pub fn new() -> Self {
-        Match { len: 0, offset: 0, next_symbol: 0 }
-    }
+    pub fn new() -> Self { Match { len: 0, offset: 0, next_symbol: 0 } }
+
     pub fn with_symbol(symbol: u8) -> Self {
         Match { len: 0, offset: 0, next_symbol: symbol }
     }

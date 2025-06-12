@@ -1,7 +1,7 @@
 
 use zippopotamus::zip::*;
 use std::{env::args, fs, io::{BufRead, BufReader}};
-use zippopotamus::{huffman::*, zip::compress_file};
+use zippopotamus::{huffman::*, lz77::*, zip::compress_file};
 
 fn main() {
     //let _ = webbrowser::open("https://youtu.be/q86g1aop6a8");
@@ -9,6 +9,14 @@ fn main() {
 
     //compress_file("test_data/data.txt", "test_data/compressed.zpp");
     //decompress_file("test_data/compressed.zpp", "test_data/decompressed.txt");
+
+    let vec: Vec<u8> = "hello world this is a test".as_bytes().to_vec();
+    let encoded = lz77_encode(&vec);
+    println!("{:?}", encoded);
+
+    let decoded = String::from_utf8(lz77_decode(&encoded).unwrap());
+    println!("\nDecoded: {:?}", decoded);
+    return;
 
     //let selection = args().nth(1)
     let filename = args().nth(1).unwrap_or("data.txt".to_string());
